@@ -1,0 +1,11 @@
+import dotenv from 'dotenv';
+import app from './app';
+
+dotenv.config();
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`[MOVA Server] API is running on http://localhost:${PORT}`);
+  console.log(`[MOVA Server] Health check endpoint: http://localhost:${PORT}/api/health`);
+});
