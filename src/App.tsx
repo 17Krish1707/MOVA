@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { StatCards } from './components/dashboard/StatCards';
@@ -20,7 +20,6 @@ import type {
 } from './types/dashboard';
 
 import { 
-  MOCK_DELIVERIES, 
   MOCK_DRIVERS, 
   MOCK_VEHICLES, 
   MOCK_ROUTES, 
@@ -36,12 +35,44 @@ export const App: React.FC = () => {
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
 
   // Local dashboard static state
-  const [deliveries, setDeliveries] = useState<Delivery[]>(MOCK_DELIVERIES);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [drivers, setDrivers] = useState<Driver[]>(MOCK_DRIVERS);
   const [vehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
   const [routes] = useState<Route[]>(MOCK_ROUTES);
   const [incidents, setIncidents] = useState<Incident[]>(MOCK_INCIDENTS);
   const [stats] = useState<DashboardStats>(INITIAL_STATS);
+
+  // Fetch real delivery data from the API
+  useEffect(() => {
+    const fetchDeliveries = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await fetch('http://localhost:5000/api/deliveries');
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        
+        // Map backend _id to frontend id, and ensure proper types
+        const mappedDeliveries: Delivery[] = data.map((d: any) => ({
+          ...d,
+          id: d._id, // map MongoDB _id to frontend id
+        }));
+        
+        setDeliveries(mappedDeliveries);
+      } catch (err: any) {
+        console.error('Failed to fetch deliveries:', err);
+        setError(err.message || 'Failed to connect to the dispatch server.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDeliveries();
+  }, []);
 
   // Helper to mark incident resolved
   const handleResolveIncident = (id: string) => {
@@ -97,11 +128,23 @@ export const App: React.FC = () => {
               <StatCards stats={stats} />
 
               {/* Deliveries Table */}
-              <DeliveriesTable
-                deliveries={deliveries}
-                onSelectDelivery={(delivery) => setSelectedDelivery(delivery)}
-                searchQuery={searchQuery}
-              />
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-xl space-y-3">
+                  <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-slate-400 text-sm">Loading delivery telemetry...</p>
+                </div>
+              ) : error ? (
+                <div className="p-4 bg-red-950/40 border border-red-900/50 rounded-xl text-center">
+                  <p className="text-red-400 text-sm font-semibold">Failed to connect to Dispatch server</p>
+                  <p className="text-red-300/80 text-xs mt-1">{error}</p>
+                </div>
+              ) : (
+                <DeliveriesTable
+                  deliveries={deliveries}
+                  onSelectDelivery={(delivery) => setSelectedDelivery(delivery)}
+                  searchQuery={searchQuery}
+                />
+              )}
 
               {/* Driver Status Fleet Overview */}
               <DriverStatus drivers={drivers} />
@@ -109,11 +152,23 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'orders' && (
-            <DeliveriesTable
-              deliveries={deliveries}
-              onSelectDelivery={(delivery) => setSelectedDelivery(delivery)}
-              searchQuery={searchQuery}
-            />
+            isLoading ? (
+              <div className="flex flex-col items-center justify-center p-8 bg-slate-900 border border-slate-800 rounded-xl space-y-3">
+                <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-slate-400 text-sm">Loading delivery telemetry...</p>
+              </div>
+            ) : error ? (
+              <div className="p-4 bg-red-950/40 border border-red-900/50 rounded-xl text-center">
+                <p className="text-red-400 text-sm font-semibold">Failed to connect to Dispatch server</p>
+                <p className="text-red-300/80 text-xs mt-1">{error}</p>
+              </div>
+            ) : (
+              <DeliveriesTable
+                deliveries={deliveries}
+                onSelectDelivery={(delivery) => setSelectedDelivery(delivery)}
+                searchQuery={searchQuery}
+              />
+            )
           )}
 
           {activeTab === 'drivers' && (
