@@ -9,6 +9,7 @@ import { RoutesView } from './components/dashboard/RoutesView';
 import { IncidentsView } from './components/dashboard/IncidentsView';
 import { DeliveryDetailsModal } from './components/dashboard/DeliveryDetailsModal';
 
+import { getDeliveries } from './api';
 import type { 
   NavigationTab, 
   Delivery, 
@@ -44,28 +45,18 @@ export const App: React.FC = () => {
   const [incidents, setIncidents] = useState<Incident[]>(MOCK_INCIDENTS);
   const [stats] = useState<DashboardStats>(INITIAL_STATS);
 
-  // Fetch real delivery data from the API
+  // Fetch real delivery data from the API service
   useEffect(() => {
     const fetchDeliveries = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch('http://localhost:5000/api/deliveries');
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
-        
-        // Map backend _id to frontend id, and ensure proper types
-        const mappedDeliveries: Delivery[] = data.map((d: any) => ({
-          ...d,
-          id: d._id, // map MongoDB _id to frontend id
-        }));
-        
-        setDeliveries(mappedDeliveries);
-      } catch (err: any) {
+        const data = await getDeliveries();
+        setDeliveries(data);
+      } catch (err: unknown) {
         console.error('Failed to fetch deliveries:', err);
-        setError(err.message || 'Failed to connect to the dispatch server.');
+        const message = err instanceof Error ? err.message : 'Failed to connect to the dispatch server.';
+        setError(message);
       } finally {
         setIsLoading(false);
       }

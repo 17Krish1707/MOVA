@@ -1,147 +1,105 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { Delivery } from '../models/delivery.model';
+import { AppError, catchAsync } from '../utils';
 
-// @desc    Get all deliveries
-// @route   GET /api/deliveries
-// @access  Public
-export const getDeliveries = async (_req: Request, res: Response): Promise<void> => {
-  try {
+/**
+ * @desc    Get all deliveries
+ * @route   GET /api/deliveries
+ * @access  Public
+ */
+export const getDeliveries = catchAsync(
+  async (_req: Request, res: Response, _next: NextFunction): Promise<void> => {
     const deliveries = await Delivery.find().sort({ createdAt: -1 });
     res.status(200).json(deliveries);
-  } catch (error: any) {
-    console.error('[MOVA Server] Get deliveries error:', error);
-    res.status(500).json({
-      message: 'Failed to retrieve deliveries',
-      error: error.message || 'Internal Server Error',
-    });
   }
-};
+);
 
-// @desc    Create a new delivery
-// @route   POST /api/deliveries
-// @access  Public
-export const createDelivery = async (req: Request, res: Response): Promise<void> => {
-  try {
+/**
+ * @desc    Create a new delivery
+ * @route   POST /api/deliveries
+ * @access  Public
+ */
+export const createDelivery = catchAsync(
+  async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     const newDelivery = new Delivery(req.body);
     const savedDelivery = await newDelivery.save();
     res.status(201).json(savedDelivery);
-  } catch (error: any) {
-    console.error('[MOVA Server] Create delivery error:', error);
-    
-    // Check if Mongoose Validation Error
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map((val: any) => val.message);
-      res.status(400).json({
-        message: 'Validation failed',
-        errors: messages,
-      });
-      return;
-    }
-
-    res.status(500).json({
-      message: 'Failed to create delivery',
-      error: error.message || 'Internal Server Error',
-    });
   }
-};
+);
 
-// @desc    Get delivery by ID
-// @route   GET /api/deliveries/:id
-// @access  Public
-export const getDeliveryById = async (req: Request, res: Response): Promise<void> => {
-  try {
+/**
+ * @desc    Get delivery by ID
+ * @route   GET /api/deliveries/:id
+ * @access  Public
+ */
+export const getDeliveryById = catchAsync(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
-      res.status(400).json({ message: 'Invalid delivery ID format' });
-      return;
+      return next(new AppError(400, `Invalid delivery ID format: '${id}'`));
     }
 
     const delivery = await Delivery.findById(id);
 
     if (!delivery) {
-      res.status(404).json({ message: 'Delivery not found' });
-      return;
+      return next(new AppError(404, `Delivery with ID '${id}' not found`));
     }
 
     res.status(200).json(delivery);
-  } catch (error: any) {
-    console.error('[MOVA Server] Get delivery by ID error:', error);
-    res.status(500).json({
-      message: 'Failed to retrieve delivery',
-      error: error.message || 'Internal Server Error',
-    });
   }
-};
+);
 
-// @desc    Update delivery by ID (partial update)
-// @route   PATCH /api/deliveries/:id
-// @access  Public
-export const updateDelivery = async (req: Request, res: Response): Promise<void> => {
-  try {
+/**
+ * @desc    Update delivery by ID (partial update)
+ * @route   PATCH /api/deliveries/:id
+ * @access  Public
+ */
+export const updateDelivery = catchAsync(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
-      res.status(400).json({ message: 'Invalid delivery ID format' });
-      return;
+      return next(new AppError(400, `Invalid delivery ID format: '${id}'`));
     }
 
     const updatedDelivery = await Delivery.findByIdAndUpdate(id, req.body, {
-      new: true, // returns the updated document
-      runValidators: true, // run Mongoose schema validators on the patch payload
+      new: true, // returns updated document
+      runValidators: true, // triggers schema validations on patched fields
     });
 
     if (!updatedDelivery) {
-      res.status(404).json({ message: 'Delivery not found' });
-      return;
+      return next(new AppError(404, `Delivery with ID '${id}' not found`));
     }
 
     res.status(200).json(updatedDelivery);
-  } catch (error: any) {
-    console.error('[MOVA Server] Update delivery error:', error);
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map((val: any) => val.message);
-      res.status(400).json({
-        message: 'Validation failed',
-        errors: messages,
-      });
-      return;
-    }
-
-    res.status(500).json({
-      message: 'Failed to update delivery',
-      error: error.message || 'Internal Server Error',
-    });
   }
-};
+);
 
-// @desc    Delete delivery by ID
-// @route   DELETE /api/deliveries/:id
-// @access  Public
-export const deleteDelivery = async (req: Request, res: Response): Promise<void> => {
-  try {
+/**
+ * @desc    Delete delivery by ID
+ * @route   DELETE /api/deliveries/:id
+ * @access  Public
+ */
+export const deleteDelivery = catchAsync(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
-      res.status(400).json({ message: 'Invalid delivery ID format' });
-      return;
+      return next(new AppError(400, `Invalid delivery ID format: '${id}'`));
     }
 
     const deletedDelivery = await Delivery.findByIdAndDelete(id);
 
     if (!deletedDelivery) {
-      res.status(404).json({ message: 'Delivery not found' });
-      return;
+      return next(new AppError(404, `Delivery with ID '${id}' not found`));
     }
 
-    res.status(200).json({ message: 'Delivery deleted successfully', id });
-  } catch (error: any) {
-    console.error('[MOVA Server] Delete delivery error:', error);
-    res.status(500).json({
-      message: 'Failed to delete delivery',
-      error: error.message || 'Internal Server Error',
+    res.status(200).json({
+      status: 'success',
+      message: 'Delivery deleted successfully',
+      id,
     });
   }
-};
+);
