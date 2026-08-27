@@ -65,7 +65,7 @@ export const updateDelivery = catchAsync(
     }
 
     const updatedDelivery = await Delivery.findByIdAndUpdate(id, req.body, {
-      new: true, // returns updated document
+      returnDocument: 'after', // returns updated document
       runValidators: true, // triggers schema validations on patched fields
     });
 

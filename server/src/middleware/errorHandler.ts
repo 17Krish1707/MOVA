@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { AppError } from '../utils/appError';
 
 interface CustomError extends Error {
@@ -10,6 +11,7 @@ interface CustomError extends Error {
   value?: unknown;
   errors?: Record<string, { message: string }>;
   keyValue?: Record<string, unknown>;
+  issues?: Array<{ path: (string | number)[]; message: string }>;
 }
 
 /**
@@ -113,7 +115,15 @@ export const errorHandler = (
     else if (err.name === 'ValidationError') {
       operationalError = handleValidationErrorDB(err);
     }
-    // 4. Malformed JSON body in request
+    // 4. Zod Request Validation error
+    else if (err instanceof ZodError || err.name === 'ZodError') {
+      const errorMessages = (err.issues || []).map((issue) => {
+        const path = issue.path.join('.');
+        return path ? `${path}: ${issue.message}` : issue.message;
+      });
+      operationalError = new AppError(400, 'Validation failed', errorMessages);
+    }
+    // 5. Malformed JSON body in request
     else if (err instanceof SyntaxError && 'body' in err) {
       operationalError = handleJsonSyntaxError();
     }

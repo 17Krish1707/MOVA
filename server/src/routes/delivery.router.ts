@@ -6,14 +6,39 @@ import {
   updateDelivery,
   deleteDelivery,
 } from '../controllers/delivery.controller';
+import { validate } from '../middleware';
+import {
+  createDeliverySchema,
+  updateDeliverySchema,
+  deliveryParamsSchema,
+} from '../schemas';
 
 const router = Router();
 
 router.get('/', getDeliveries);
-router.post('/', createDelivery);
 
-router.get('/:id', getDeliveryById);
-router.patch('/:id', updateDelivery);
-router.delete('/:id', deleteDelivery);
+router.post(
+  '/',
+  validate(createDeliverySchema),
+  createDelivery
+);
+
+router.get(
+  '/:id',
+  validate({ params: deliveryParamsSchema }),
+  getDeliveryById
+);
+
+router.patch(
+  '/:id',
+  validate({ params: deliveryParamsSchema, body: updateDeliverySchema }),
+  updateDelivery
+);
+
+router.delete(
+  '/:id',
+  validate({ params: deliveryParamsSchema }),
+  deleteDelivery
+);
 
 export default router;
