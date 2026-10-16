@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
 import type { Delivery, DeliveryStatus } from '../../types/dashboard';
 import { Badge } from '../common/Badge';
-import { Package, User, MapPin, Eye, ArrowUpDown, Filter, Clock } from 'lucide-react';
+import { 
+  Package, 
+  MapPin, 
+  Eye, 
+  Clock, 
+  Plus, 
+  Edit3, 
+  Trash2 
+} from 'lucide-react';
 
 interface DeliveriesTableProps {
   deliveries: Delivery[];
   onSelectDelivery: (delivery: Delivery) => void;
+  onCreateDelivery?: () => void;
+  onEditDelivery?: (delivery: Delivery) => void;
+  onDeleteDelivery?: (delivery: Delivery) => void;
   searchQuery: string;
 }
 
 export const DeliveriesTable: React.FC<DeliveriesTableProps> = ({
   deliveries,
   onSelectDelivery,
+  onCreateDelivery,
+  onEditDelivery,
+  onDeleteDelivery,
   searchQuery,
 }) => {
   const [selectedFilter, setSelectedFilter] = useState<DeliveryStatus | 'all'>('all');
@@ -35,11 +49,23 @@ export const DeliveriesTable: React.FC<DeliveriesTableProps> = ({
     { id: 'pending', label: 'Pending Dispatch', count: deliveries.filter(d => d.status === 'pending').length },
     { id: 'delayed', label: 'Delayed', count: deliveries.filter(d => d.status === 'delayed').length },
     { id: 'delivered', label: 'Delivered', count: deliveries.filter(d => d.status === 'delivered').length },
+    { id: 'cancelled', label: 'Cancelled', count: deliveries.filter(d => d.status === 'cancelled').length },
   ];
+
+  const formatEta = (etaStr: string) => {
+    const d = new Date(etaStr);
+    if (isNaN(d.getTime())) return etaStr;
+    return d.toLocaleString([], { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
 
   return (
     <div className="glass-panel rounded-2xl border border-slate-800 p-6 shadow-xl mb-8">
-      {/* Header title & filter tab bar */}
+      {/* Header title & actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
@@ -51,28 +77,43 @@ export const DeliveriesTable: React.FC<DeliveriesTableProps> = ({
           </p>
         </div>
 
-        {/* Status Pill Filters */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
-          {filterTabs.map((tab) => {
-            const isActive = selectedFilter === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedFilter(tab.id)}
-                className={`
-                  px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5
-                  ${isActive
-                    ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}
-                `}
-              >
-                <span>{tab.label}</span>
-                <span className={`px-1.5 py-0.2 text-[10px] rounded-full ${isActive ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+        {/* Action Controls: Status Filters + Create Delivery Button */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Status Pill Filters */}
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+            {filterTabs.map((tab) => {
+              const isActive = selectedFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setSelectedFilter(tab.id)}
+                  className={`
+                    px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5
+                    ${isActive
+                      ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}
+                  `}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`px-1.5 py-0.2 text-[10px] rounded-full ${isActive ? 'bg-slate-950/30 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Create Delivery Action Button */}
+          {onCreateDelivery && (
+            <button
+              onClick={onCreateDelivery}
+              className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-colors flex items-center gap-2 shadow-lg shadow-cyan-500/20 shrink-0"
+              title="Create new delivery order"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Create Delivery</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -87,7 +128,7 @@ export const DeliveriesTable: React.FC<DeliveriesTableProps> = ({
               <th className="py-3.5 px-4">Priority</th>
               <th className="py-3.5 px-4">Status</th>
               <th className="py-3.5 px-4">ETA</th>
-              <th className="py-3.5 px-4 text-right">Action</th>
+              <th className="py-3.5 px-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60 bg-slate-900/30">
@@ -119,7 +160,7 @@ export const DeliveriesTable: React.FC<DeliveriesTableProps> = ({
                     <div className="font-semibold text-slate-100">{delivery.customerName}</div>
                     <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5 truncate max-w-xs">
                       <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
-                      <span className="truncate">{delivery.destinationAddress}</span>
+                      <span className="truncate">{delivery.destinationAddress}, {delivery.destinationCity}</span>
                     </div>
                   </td>
 
@@ -153,22 +194,54 @@ export const DeliveriesTable: React.FC<DeliveriesTableProps> = ({
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
                       <Clock className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{delivery.eta}</span>
+                      <span>{formatEta(delivery.eta)}</span>
                     </div>
                   </td>
 
-                  {/* View Details Button */}
+                  {/* Action Buttons: Details, Edit, Delete */}
                   <td className="py-4 px-4 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectDelivery(delivery);
-                      }}
-                      className="p-2 rounded-lg bg-slate-800/80 hover:bg-cyan-500 text-slate-300 hover:text-slate-950 transition-colors inline-flex items-center gap-1.5 text-xs font-bold"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Details</span>
-                    </button>
+                    <div className="inline-flex items-center gap-1.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectDelivery(delivery);
+                        }}
+                        className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-cyan-500 text-slate-300 hover:text-slate-950 transition-colors inline-flex items-center gap-1 text-xs font-bold"
+                        title="View Manifest Details"
+                        aria-label="View details"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Details</span>
+                      </button>
+
+                      {onEditDelivery && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditDelivery(delivery);
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-colors"
+                          title="Edit Delivery"
+                          aria-label="Edit delivery"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
+                      {onDeleteDelivery && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteDelivery(delivery);
+                          }}
+                          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                          title="Delete Delivery"
+                          aria-label="Delete delivery"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
