@@ -1,32 +1,81 @@
-# React + TypeScript + Vite
+# MOVA - Last-Mile Logistics & Dispatch Operations Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+MOVA is a full-stack last-mile operations dashboard and logistics management platform featuring interactive delivery tracking, dispatch management, telemetry status cards, driver fleet monitoring, and real-time CRUD operations.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🛠 Tech Stack
 
-## React Compiler
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS v4, Lucide Icons
+- **Backend**: Node.js, Express, TypeScript, Zod Schema Validation, Mongoose (MongoDB)
+- **Persistence**: MongoDB (with seamless in-memory fallback for local development)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 🚀 Quick Start (Run Locally)
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### 1. Install Dependencies
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+# Install root (frontend + tooling) dependencies
+npm install
+
+# Install backend dependencies
+cd server
+npm install
+cd ..
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### 2. Configure Environment
+
+Copy the example environment files (pre-configured defaults are provided):
+
+```bash
+# Frontend (.env)
+cp .env.example .env
+
+# Backend (server/.env)
+cp server/.env.example server/.env
+```
+
+Default configuration:
+- Frontend: `VITE_API_URL=http://localhost:5000`
+- Backend: `PORT=5000`, `MONGODB_URI=mongodb://localhost:27017/mova` (if MongoDB is not running, the server automatically operates in local in-memory mode).
+
+### 3. Run Locally
+
+You can run both client and server concurrently with a single command:
+
+```bash
+npm run dev:all
+```
+
+Or run them individually in separate terminal sessions:
+
+```bash
+# Terminal 1: Start frontend (Vite)
+npm run dev
+
+# Terminal 2: Start backend (Express + tsx watch)
+npm run server
+```
+
+- **Frontend App**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:5000](http://localhost:5000)
+- **API Health Check**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+- **Deliveries API**: [http://localhost:5000/api/deliveries](http://localhost:5000/api/deliveries)
+
+---
+
+## 📦 Build for Production
+
+```bash
+# Build frontend
+npm run build
+
+# Build backend
+npm run server:build
+
+# Run backend production server
+npm run server:start
+```

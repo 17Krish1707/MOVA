@@ -28,7 +28,10 @@ const handleCastErrorDB = (err: CustomError): AppError => {
 const handleDuplicateFieldsDB = (err: CustomError): AppError => {
   const field = err.keyValue ? Object.keys(err.keyValue)[0] : 'field';
   const value = err.keyValue ? Object.values(err.keyValue)[0] : '';
-  const message = `Duplicate value for '${field}': "${value}". Please use a unique value.`;
+  const message =
+    field === 'trackingCode'
+      ? `Tracking code '${value}' already exists. Please use a unique tracking code.`
+      : `Duplicate value for '${field}': "${value}". Please use a unique value.`;
   return new AppError(409, message);
 };
 

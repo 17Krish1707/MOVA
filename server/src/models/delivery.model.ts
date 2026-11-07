@@ -23,7 +23,7 @@ const deliverySchema = new Schema<IDelivery>(
     trackingCode: {
       type: String,
       required: true,
-      index: true,
+      uppercase: true,
       trim: true,
     },
     customerName: {
@@ -86,6 +86,15 @@ const deliverySchema = new Schema<IDelivery>(
   },
   {
     timestamps: true,
+    autoIndex: false, // Controlled index creation after safety validation check
+  }
+);
+
+deliverySchema.index(
+  { trackingCode: 1 },
+  {
+    unique: true,
+    name: 'trackingCode_unique',
   }
 );
 

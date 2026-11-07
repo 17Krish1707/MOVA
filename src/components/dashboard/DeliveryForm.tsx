@@ -45,11 +45,27 @@ function toDatetimeLocalString(dateStr?: string): string {
 }
 
 /**
- * Generate a random MOVA tracking code format: MOV-XXXXX
+ * Generate a collision-resistant MOVA tracking code format: MOV-XXXX-XXXX
+ * Combines high-resolution timestamp entropy with random alphanumeric characters.
  */
 function generateTrackingCode(): string {
-  const randomNum = Math.floor(10000 + Math.random() * 90000);
-  return `MOV-${randomNum}`;
+  const chars = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const timePart = Date.now().toString(36).slice(-4).toUpperCase();
+  let randomPart = '';
+
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(4);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 4; i++) {
+      randomPart += chars[bytes[i] % chars.length];
+    }
+  } else {
+    for (let i = 0; i < 4; i++) {
+      randomPart += chars[Math.floor(Math.random() * chars.length)];
+    }
+  }
+
+  return `MOV-${timePart}-${randomPart}`;
 }
 
 export const DeliveryForm: React.FC<DeliveryFormProps> = ({
@@ -61,9 +77,9 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
   serverError,
   availableDrivers = [],
 }) => {
-  // Controlled React form state
+  // Controlled React form state with case and whitespace normalization
   const [trackingCode, setTrackingCode] = useState<string>(
-    initialData?.trackingCode || (mode === 'create' ? generateTrackingCode() : '')
+    initialData?.trackingCode?.trim().toUpperCase() || (mode === 'create' ? generateTrackingCode() : '')
   );
   const [customerName, setCustomerName] = useState<string>(initialData?.customerName || '');
   const [customerPhone, setCustomerPhone] = useState<string>(initialData?.customerPhone || '');
@@ -126,8 +142,10 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
     // Convert datetime-local string to ISO Date string for backend schema compatibility
     const isoEta = eta ? new Date(eta).toISOString() : new Date().toISOString();
 
+    const normalizedTrackingCode = trackingCode.trim().toUpperCase();
+
     const payload: CreateDeliveryInput = {
-      trackingCode: trackingCode.trim(),
+      trackingCode: normalizedTrackingCode,
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
       destinationAddress: destinationAddress.trim(),
@@ -186,7 +204,7 @@ export const DeliveryForm: React.FC<DeliveryFormProps> = ({
               setTrackingCode(e.target.value.toUpperCase());
               if (errors.trackingCode) setErrors((prev) => ({ ...prev, trackingCode: '' }));
             }}
-            placeholder="MOV-12345"
+            placeholder="MOV-K8X9-4M2P"
             disabled={isSubmitting}
             className={`w-full px-3.5 py-2.5 bg-slate-950/80 border rounded-xl text-sm font-mono text-cyan-300 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-all ${
               errors.trackingCode ? 'border-rose-500' : 'border-slate-800 focus:border-cyan-500'

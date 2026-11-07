@@ -27,7 +27,8 @@ export const createDeliverySchema = z.object({
   trackingCode: z
     .string({ message: 'Tracking code is required' })
     .trim()
-    .min(1, 'Tracking code cannot be empty'),
+    .min(1, 'Tracking code cannot be empty')
+    .transform((val) => val.trim().toUpperCase()),
 
   customerName: z
     .string({ message: 'Customer name is required' })
